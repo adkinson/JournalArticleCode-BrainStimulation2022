@@ -75,49 +75,34 @@ if ~isempty(iA)
 end
 
 % Stitch data by User's choice
-switch mode
-    case 'Concatenate'
-        NSx.Data = horzcat(NSx.Data{:});
-    case 'Zero Pad'
-        timestamp = NSx.MetaTags.Timestamp;
-        padding = diff(timestamp/(NSx.MetaTags.TimeRes/NSx.MetaTags.SamplingFreq))-NSx.MetaTags.DataPoints'; % Tells the number of samples lost between cells within the given Time Resolution
-        if any(size(padding)==1)
-            padding = padding(1);
-        else
-            padding = diag(padding);
-        end
-        nDataChunks = cell2mat(cellfun(@(x) size(x,2),NSx.Data,'Uni',0));
-        nData = sum(nDataChunks)+sum(padding);
-        nChan = size(NSx.Data{1},1);
-        d = zeros(nChan,nData);
-        c = 0;
-        d(:,c+(1:nDataChunks(1))) = NSx.Data{1};
-        
-        for i = 2:length(NSx.Data)
-            c = sum(nDataChunks(1:i-1))+sum(padding(1:i-1));
-            d(:,c+(1:nDataChunks(i))) = NSx.Data{i};
-        end
-        NSx.Data = d;
-    case 'NaN Pad'
-        timestamp = NSx.MetaTags.Timestamp;
-        padding = diff(timestamp/(NSx.MetaTags.TimeRes/NSx.MetaTags.SamplingFreq))-NSx.MetaTags.DataPoints'; % Tells the number of samples lost between cells within the given Time Resolution
-        if any(size(padding)==1)
-            padding = padding(1);
-        else
-            padding = diag(padding);
-        end
-        nDataChunks = cellfun(@(x) size(x,2),NSx.Data,'Uni',0);
-        nData = sum(nDataChunks)+sum(padding);
-        nChan = size(NSx.Data{1},1);
-        d = nan(nChan,nData);
-        c = 0;
-        d(:,c+(1:nDataChunks(1))) = NSx.Data{1};
-        
-        for i = 2:length(NSx.Data)
-            c = sum(nDataChunks(1:i-1))+sum(padding(1:i-1));
-            d(:,c+(1:nDataChunks(i))) = NSx.Data{i};
-        end
-        NSx.Data = d;
+if strcmp(mode,'Concatenate')
+    NSx.Data = horzcat(NSx.Data{:});
+else
+    switch mode
+        case 'Zero Pad'
+            paddingFunctionHandle = @zeros;
+        case 'NaN Pad'
+            paddingFunctionHandle = @nan;
+    end
+    timestamp = NSx.MetaTags.Timestamp;
+    padding = diff(timestamp/(NSx.MetaTags.TimeRes/NSx.MetaTags.SamplingFreq))-NSx.MetaTags.DataPoints'; % Tells the number of samples lost between cells within the given Time Resolution
+    if any(size(padding)==1)
+        padding = padding(1);
+    else
+        padding = diag(padding);
+    end
+    nDataChunks = cell2mat(cellfun(@(x) size(x,2),NSx.Data,'Uni',0));
+    nData = sum(nDataChunks)+sum(padding);
+    nChan = size(NSx.Data{1},1);
+    d = paddingFunctionHandle(nChan,nData);
+    c = 0;
+    d(:,c+(1:nDataChunks(1))) = NSx.Data{1};
+
+    for i = 2:length(NSx.Data)
+        c = sum(nDataChunks(1:i-1))+sum(padding(1:i-1));
+        d(:,c+(1:nDataChunks(i))) = NSx.Data{i};
+    end
+    NSx.Data = d;
 end
 
 end
